@@ -61,12 +61,4 @@ mod tests {
             session.replies().any(|item: &Item| is_loopback(&item.iface))
         }
     }
-
-    #[test]
-    fn handle_some_interface() {
-        let mut session = crate::session::FakeSession::new();
-        assert!(handle(&mut session, ()).is_ok());
-
-        assert!(session.reply_count() > 0);
-    }
 }
