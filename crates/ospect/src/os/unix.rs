@@ -54,6 +54,10 @@ pub fn hostname() -> std::io::Result<std::ffi::OsString> {
 pub fn fqdn() -> std::io::Result<std::ffi::OsString> {
     let uname = uname()?;
 
+    let is_macos = unsafe {
+        std::ffi::CStr::from_ptr(uname.sysname.as_ptr())
+    }.to_string_lossy() == "Darwin";
+
     let hints = libc::addrinfo {
         ai_family: libc::AF_UNSPEC, // `AF_UNSPEC` means "any family".
         ai_socktype: 0, // 0 means "any type".
@@ -81,6 +85,11 @@ pub fn fqdn() -> std::io::Result<std::ffi::OsString> {
             info.as_mut_ptr(),
         )
     };
+
+    if is_macos && code != 0 {
+        return hostname();
+    }
+
     if code != 0 {
         // Ideally, we should use `gai_strerror` to get a human-friendly message
         // of the error. Unfortunately, it is not clear whether this function is
