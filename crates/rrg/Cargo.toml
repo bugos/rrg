@@ -15,13 +15,16 @@ default = [
     "action-get_file_contents",
     "action-grep_file_contents",
     "action-get_filesystem_timeline",
+    "action-get_tcp_response",
     "action-list_connections",
     "action-list_interfaces",
     "action-list_mounts",
+    "action-list_utmp_users",
     "action-get_winreg_value",
     "action-list_winreg_values",
     "action-list_winreg_keys",
     "action-query_wmi",
+    "action-execute_signed_command",
 ]
 
 action-get_system_metadata = []
@@ -32,13 +35,16 @@ action-get_file_metadata-sha256 = ["action-get_file_metadata", "dep:sha2"]
 action-get_file_contents = ["dep:sha2"]
 action-grep_file_contents = []
 action-get_filesystem_timeline = ["dep:flate2", "dep:sha2"]
+action-get_tcp_response = []
 action-list_connections = []
 action-list_interfaces = []
 action-list_mounts = []
+action-list_utmp_users = []
 action-get_winreg_value = []
 action-list_winreg_values = []
 action-list_winreg_keys = []
 action-query_wmi = []
+action-execute_signed_command = []
 
 test-setfattr = []
 test-chattr = []
@@ -46,9 +52,6 @@ test-fuse = ["dep:fuse"]
 
 [dependencies.ospect]
 path = "../ospect"
-
-[dependencies.rrg-macro]
-path = "../rrg-macro"
 
 [dependencies.rrg-proto]
 path = "../rrg-proto"
@@ -132,4 +135,13 @@ version = "0.59.0"
 features = [
     "Win32_Foundation",
     "Win32_Storage_FileSystem",
+]
+
+[dependencies.ed25519-dalek]
+version = "2.1.1"
+
+[dev-dependencies.ed25519-dalek]
+version = "2.1.1"
+features = [
+    "rand_core",
 ]

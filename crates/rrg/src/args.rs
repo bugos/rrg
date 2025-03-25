@@ -49,6 +49,14 @@ pub struct Args {
            arg_name="PATH",
            description="whether to log to a file")]
     pub log_to_file: Option<std::path::PathBuf>,
+
+    /// The public key for verfying signed commands.
+    #[argh(option,
+       long="command-verification-key",
+       arg_name="KEY",
+       description="verification key for signed commands",
+       from_str_fn(parse_verfication_key))]
+    pub command_verification_key: Option<ed25519_dalek::VerifyingKey>,
 }
 
 /// Parses command-line arguments.
@@ -65,4 +73,93 @@ pub fn from_env_args() -> Args {
 /// Parses a human-friendly duration description to a `Duration` object.
 fn parse_duration(value: &str) -> Result<Duration, String> {
     humantime::parse_duration(value).map_err(|error| error.to_string())
+}
+
+/// Decodes a slice of hex digits to a Vector of byte values.
+fn decode_hex(hex: &str) -> Result<Vec<u8>, DecodeHexError> {
+    use DecodeHexError::*;
+
+    // TODO(rust-lang/rust#74985): Use `array_chunks` once stabilized.
+    let chars = hex.chars().collect::<Vec<char>>();
+    let pairs = chars.chunks_exact(2);
+    if !pairs.remainder().is_empty() {
+        return Err(InvalidLen(chars.len()));
+    }
+
+    pairs.map(|pair| {
+        let hi = pair[0].to_digit(16).ok_or(InvalidChar(pair[0]))? as u8;
+        let lo = pair[1].to_digit(16).ok_or(InvalidChar(pair[1]))? as u8;
+        Ok(hi << 4 | lo)
+    }).collect()
+}
+
+#[derive(Debug)]
+enum DecodeHexError {
+    InvalidLen(usize),
+    InvalidChar(char),
+}
+
+impl std::fmt::Display for DecodeHexError {
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            DecodeHexError::InvalidLen(len) => {
+                write!(f, "invalid hex string length: {len}")
+            }
+            DecodeHexError::InvalidChar(char) => {
+                write!(f, "invalid hex character: {char}")
+            }
+        }
+    }
+}
+
+/// Parses a ed25519 verification key from hex data given as string to a `VerifyingKey` object.
+fn parse_verfication_key(key: &str) -> Result<ed25519_dalek::VerifyingKey, String> {
+    let bytes = decode_hex(key).map_err(|error| error.to_string())?;
+    ed25519_dalek::VerifyingKey::try_from(&bytes[..]).map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    use quickcheck::quickcheck;
+
+    #[test]
+    fn decode_hex_capital_letters() {
+        assert_eq!(decode_hex("A28F").unwrap(), vec![0xA2, 0x8F])
+    }
+
+    #[test]
+    fn decode_hex_lower_case_letters() {
+        assert_eq!(decode_hex("a28f").unwrap(), vec![0xa2, 0x8f])
+    }
+
+    #[test]
+    fn decode_hex_invalid_length() {
+        assert!(matches!(decode_hex("abc").unwrap_err(), DecodeHexError::InvalidLen(3)));
+    }
+
+    #[test]
+    fn decode_hex_invalid_char() {
+        assert!(matches!(decode_hex("x0").unwrap_err(), DecodeHexError::InvalidChar('x')));
+        assert!(matches!(decode_hex("0y").unwrap_err(), DecodeHexError::InvalidChar('y')));
+    }
+
+    #[test]
+    fn decode_hex_emtpy() {
+        assert_eq!(decode_hex("").unwrap(), vec![]);
+    }
+
+    quickcheck! {
+
+        fn decode_hex_any_byte_lower(byte: u8) -> bool {
+            decode_hex(&format!("{byte:02x}")).unwrap() == vec![byte]
+        }
+
+        fn decode_hex_any_byte_upper(byte: u8) -> bool {
+            decode_hex(&format!("{byte:02X}")).unwrap() == vec![byte]
+        }
+    }
 }

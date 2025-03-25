@@ -30,6 +30,9 @@ pub mod grep_file_contents;
 #[cfg(feature = "action-get_filesystem_timeline")]
 pub mod get_filesystem_timeline;
 
+#[cfg(feature = "action-get_tcp_response")]
+pub mod get_tcp_response;
+
 #[cfg(feature = "action-list_connections")]
 pub mod list_connections;
 
@@ -38,6 +41,9 @@ pub mod list_interfaces;
 
 #[cfg(feature = "action-list_mounts")]
 pub mod list_mounts;
+
+#[cfg(feature = "action-list_utmp_users")]
+pub mod list_utmp_users;
 
 #[cfg(feature = "action-get_winreg_value")]
 pub mod get_winreg_value;
@@ -50,6 +56,9 @@ pub mod list_winreg_keys;
 
 #[cfg(feature = "action-query_wmi")]
 pub mod query_wmi;
+
+#[cfg(feature = "action-execute_signed_command")]
+pub mod execute_signed_command;
 
 use log::info;
 
@@ -97,6 +106,10 @@ where
         GetFilesystemTimeline => {
             handle(session, request, self::get_filesystem_timeline::handle)
         }
+        #[cfg(feature = "action-get_tcp_response")]
+        GetTcpResponse => {
+            handle(session, request, self::get_tcp_response::handle)
+        }
         #[cfg(feature = "action-list_connections")]
         ListConnections => {
             handle(session, request, self::list_connections::handle)
@@ -108,6 +121,10 @@ where
         #[cfg(feature = "action-list_mounts")]
         ListMounts => {
             handle(session, request, self::list_mounts::handle)
+        }
+        #[cfg(feature = "action-list_utmp_users")]
+        ListUtmpUsers => {
+            handle(session, request, self::list_utmp_users::handle)
         }
         #[cfg(feature = "action-get_winreg_value")]
         GetWinregValue => {
@@ -124,6 +141,10 @@ where
         #[cfg(feature = "action-query_wmi")]
         QueryWmi => {
             handle(session, request, self::query_wmi::handle)
+        }
+        #[cfg(feature = "action-execute_signed_command")]
+        ExecuteSignedCommand => {
+            handle(session, request, self::execute_signed_command::handle)
         }
         // We allow `unreachable_patterns` because otherwise we get a warning if
         // we compile with all the actions enabled.

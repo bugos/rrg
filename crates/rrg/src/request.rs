@@ -3,8 +3,6 @@
 // Use of this source code is governed by an MIT-style license that can be found
 // in the LICENSE file or at https://opensource.org/licenses/MIT.
 
-use rrg_macro::warn;
-
 /// List of all actions known by the agent.
 ///
 /// An action is a "unit of execution" and is invoked by flows (created on the
@@ -37,10 +35,12 @@ pub enum Action {
     ListInterfaces,
     /// List filesystem mounts available on the system.
     ListMounts,
-    /// List users available on the system.
-    ListUsers,
+    /// List users available on the system (Linux-only).
+    ListUtmpUsers,
     /// Get the snapshot of the entire filesystem.
     GetFilesystemTimeline,
+    /// Connect to a TCP address, write some data and retrieve the response.
+    GetTcpResponse,
     // Get a value from the Windows Registry (Windows-only).
     GetWinregValue,
     /// List values of the Windows Registry key (Windows-only).
@@ -49,6 +49,8 @@ pub enum Action {
     ListWinregKeys,
     /// Query WMI using WQL (Windows-only).
     QueryWmi,
+    /// Execute a signed command.
+    ExecuteSignedCommand,
 }
 
 impl std::fmt::Display for Action {
@@ -66,12 +68,14 @@ impl std::fmt::Display for Action {
             Action::ListNamedPipes => write!(fmt, "list_named_pipes"),
             Action::ListInterfaces => write!(fmt, "list_interfaces"),
             Action::ListMounts => write!(fmt, "list_mounts"),
-            Action::ListUsers => write!(fmt, "list_users"),
+            Action::ListUtmpUsers => write!(fmt, "list_utmp_users"),
             Action::GetFilesystemTimeline => write!(fmt, "get_filesystem_timeline"),
             Action::GetWinregValue => write!(fmt, "get_winreg_value"),
             Action::ListWinregValues => write!(fmt, "list_winreg_values"),
             Action::ListWinregKeys => write!(fmt, "list_winreg_keys"),
             Action::QueryWmi => write!(fmt, "query_wmi"),
+            Action::GetTcpResponse => write!(fmt,  "get_tcp_response"),
+            Action::ExecuteSignedCommand => write!(fmt, "execute_signed_command"),
         }
     }
 }
@@ -115,12 +119,14 @@ impl TryFrom<rrg_proto::rrg::Action> for Action {
             LIST_NAMED_PIPES => Ok(Action::ListNamedPipes),
             LIST_INTERFACES => Ok(Action::ListInterfaces),
             LIST_MOUNTS => Ok(Action::ListMounts),
-            LIST_USERS => Ok(Action::ListUsers),
+            LIST_UTMP_USERS => Ok(Action::ListUtmpUsers),
             GET_FILESYSTEM_TIMELINE => Ok(Action::GetFilesystemTimeline),
+            GET_TCP_RESPONSE => Ok(Action::GetTcpResponse),
             GET_WINREG_VALUE => Ok(Action::GetWinregValue),
             LIST_WINREG_VALUES => Ok(Action::ListWinregValues),
             LIST_WINREG_KEYS => Ok(Action::ListWinregKeys),
             QUERY_WMI => Ok(Action::QueryWmi),
+            EXECUTE_SIGNED_COMMAND => Ok(Action::ExecuteSignedCommand),
             _ => {
                 let value = protobuf::Enum::value(&proto);
                 Err(UnknownAction { value })
@@ -263,12 +269,12 @@ impl Request {
 
         if message.service != "GRR" {
             let service = message.service;
-            warn!("request send by service '{service}' (instead of 'GRR')");
+            log::warn!("request send by service '{service}' (instead of 'GRR')");
         }
         if message.kind.as_deref() != Some("rrg.Request") {
             match message.kind {
-                Some(kind) => warn!("request with unexpected kind '{kind}'"),
-                None => warn!("request with unspecified kind"),
+                Some(kind) => log::warn!("request with unexpected kind '{kind}'"),
+                None => log::warn!("request with unspecified kind"),
             }
         }
 
